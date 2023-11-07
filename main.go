@@ -2,19 +2,19 @@ package main
 
 import (
 	"encoding/json"
-	"io"
+	// "io"
 	"net/http"
 	"text/template"
 )
 
-var t *Template
+type Context struct{
+	w http.ResponseWriter
+	req *http.Request
+	t *Template
+}
 
 type Template struct {
 	templates *template.Template
-}
-
-func (t *Template) render(w io.Writer, name string, data any) error{
-	return t.templates.ExecuteTemplate(w, name, data)
 }
 
 type User struct{
@@ -23,41 +23,54 @@ type User struct{
 	Age      int
 }
 
+func (c *Context) render(name string, data any) error{
+	return c.t.templates.ExecuteTemplate(c.w, name, data)
+}
+
+func (c *Context)writeJson( code int, v any) error{
+	c.w.Header().Set("Content-Type", "application/json")
+	c.w.WriteHeader(code)
+	return json.NewEncoder(c.w).Encode(v)
+}
+
 func main(){
-	t = &Template{
+	t := &Template{
 		templates: template.Must(template.ParseGlob("www/*.html")),
 	}
-	http.HandleFunc("/", makeAPIFunc(handleHome))
-	http.HandleFunc("/api/user", makeAPIFunc(handleUser))
+	http.HandleFunc("/", makeAPIFunc(handleHome, t))
+	http.HandleFunc("/api/user", makeAPIFunc(handleUser, t))
 	http.ListenAndServe(": 3000", nil)
 
 }
 
-type apiFunc func(http.ResponseWriter, *http.Request) error
+type apiFunc func(c *Context) error
 
-func makeAPIFunc(fn apiFunc) http.HandlerFunc {
+func makeAPIFunc(fn apiFunc, t *Template) http.HandlerFunc {
 	return func( w http.ResponseWriter, r *http.Request){
-		if err := fn(w, r); err != nil{
-			writeJson(w, http.StatusInternalServerError, map[string] string{"error": err.Error()})
+		
+		ctx := &Context{
+			t: t,
+			w: w, 
+			req: r,
+		}
+		if err := fn(ctx); err != nil{
+			ctx.writeJson(http.StatusInternalServerError, map[string] string{"error": err.Error()})
 		}
 	}
 }
 
-func handleUser( w http.ResponseWriter, r *http.Request) error{
-	return writeJson(w, http.StatusOK, map[string] string{"message":"hello there, Banki"})
+// func showCatsFacts(w http.ResponseWriter, r *http.Request) error
+
+func handleUser( c *Context) error{
+	return c.writeJson( http.StatusOK, map[string] string{"message":"hello there, Banki"})
 }
 
-func handleHome(w http.ResponseWriter, r *http.Request) error{
+func handleHome(c *Context) error{
 	user := User{
 		Username: "Dio",
 		IsUser: true,
 		Age: 137,
 	}
-	return t.render(w, "index.html", user)
+	return c.render( "index.html", user)
 }
 
-func writeJson(w http.ResponseWriter, code int, v any) error{
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	return json.NewEncoder(w).Encode(v)
-}
