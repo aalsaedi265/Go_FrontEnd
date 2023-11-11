@@ -9,9 +9,28 @@
     <title>GoNxtProj</title>
 </head>
 <body>
-    <h1 class="text-4xl text-purple-600">Hello {{.Username}}, He is {{.Age}}</h1>
-    {{if .IsUser}}
-    <h1>Stands can only be used by the masters of Hammon</h1>
-    {{end}}
+
+    <div class = "container">
+        <div class="">
+            
+               <div class="font-bold text-4xl text-red 800">
+                brand
+               </div> 
+            
+            <div class="flex justify-evenly space-x-8">
+                <a>Text</a>
+                <a>Text</a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class ="bg-pink-200">
+        <h1 class="text-4xl text-purple-600">Hello {{.Username}}, He is {{.Age}}</h1>
+        {{if .IsUser}}
+        <h1>Stands can only be used by the masters of Hammon</h1>
+        {{end}}
+    </div>
+    
 </body>
 </html>l

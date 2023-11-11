@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"log"
+
 	// "io"
 	"net/http"
 	"text/template"
@@ -34,6 +37,12 @@ func (c *Context)writeJson( code int, v any) error{
 }
 
 func main(){
+	facts, err := fetchCatFacts()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(facts)
+
 	t := &Template{
 		templates: template.Must(template.ParseGlob("www/*.html")),
 	}
@@ -58,11 +67,13 @@ func makeAPIFunc(fn apiFunc, t *Template) http.HandlerFunc {
 		}
 	}
 }
-
 // func showCatsFacts(w http.ResponseWriter, r *http.Request) error
-
-func handleUser( c *Context) error{
-	return c.writeJson( http.StatusOK, map[string] string{"message":"hello there, Banki"})
+func showCatsFacts(c *Context) error{
+	facts, err := fetchCatFacts()
+	if err != nil{
+		return err
+	}
+	return c.render("fact.html", facts)
 }
 
 func handleHome(c *Context) error{
@@ -71,6 +82,31 @@ func handleHome(c *Context) error{
 		IsUser: true,
 		Age: 137,
 	}
-	return c.render( "index.html", user)
+	return c.render( "cats.html", user)
 }
 
+
+func handleUser( c *Context) error{
+	return c.writeJson( http.StatusOK, map[string] string{"message":"hello there, Banki"})
+}
+
+type catFact struct{
+	Fact string `json:"fact"`
+}
+
+type CFResp struct{
+	Data []catFact `json:"data"`
+}
+func fetchCatFacts()([]catFact, error){
+	resp, err := http.Get("http://catfact.ninja/facts")
+	if err != nil{
+		return nil, err
+	}
+	defer resp.Body.Close()
+//	var facts []catFact
+	var res CFResp
+	if err := json.NewDecoder(resp.Body).Decode(&res); err!= nil{
+		return nil, err
+	}
+	return res.Data, nil
+}
