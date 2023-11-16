@@ -1,8 +1,15 @@
-
 package main
 
-import "fmt"
+import (
+	
+	"log"
+	"weather/p2p"
+)
 
 func main(){
-	fmt.Println("the world")	
+	tr := p2p.NewTCPTransport(":3000")
+
+	log.Fatal(tr.ListenAndAccept())
+
+	select{}
 }
